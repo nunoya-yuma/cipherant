@@ -130,7 +130,7 @@ personal_research_agent/
 │   │   ├── planner.rs          # 調査計画生成
 │   │   ├── orchestrator.rs     # 処理フロー制御
 │   │   └── response_builder.rs # 応答合成
-│   ├── sources/                # 情報ソース
+│   ├── collectors/             # 情報ソース
 │   │   ├── mod.rs
 │   │   ├── web.rs              # ウェブスクレイピング
 │   │   ├── pdf.rs              # PDF処理
