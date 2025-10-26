@@ -35,7 +35,7 @@ cipherant/
 │   ├── main.rs
 │   ├── cli/              # CLIインターフェース
 │   ├── core/             # コアエンジン
-│   ├── sources/          # 情報ソース（web, pdf, local_files）
+│   ├── collectors/       # 情報ソース（web, pdf, local_files）
 │   ├── llm/              # LLMコネクタ
 │   ├── storage/          # ストレージ（vector_db, metadata, history）
 │   └── utils/            # ユーティリティ
@@ -48,7 +48,9 @@ cipherant/
 
 ```bash
 # ビルドと実行
-cargo run
+cargo run -- ${url}
+## e.g.)
+cargo run -- https://example.com
 
 # テスト
 cargo test
