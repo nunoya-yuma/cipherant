@@ -1,5 +1,6 @@
 mod cli;
 mod collectors;
+mod llm;
 
 use clap::Parser;
 use cli::Cli;
