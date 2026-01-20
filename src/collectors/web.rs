@@ -14,11 +14,33 @@ pub struct PageContent {
     pub text: String,
 }
 
-pub async fn fetch_url(url: &str) -> Result<PageContent> {
-    let response = reqwest::get(url).await?;
-    let text = response.text().await?;
+/// Trait for HTTP client abstraction (enables mocking in tests)
+trait HttpClient {
+    async fn get(&self, url: &str) -> Result<String>;
+}
 
-    Ok(parse_html(url, &text))
+struct ReqwestClient {}
+
+impl HttpClient for ReqwestClient {
+    async fn get(&self, url: &str) -> Result<String> {
+        let response = reqwest::get(url).await?;
+        let text = response.text().await?;
+
+        Ok(text)
+    }
+}
+
+pub async fn fetch_url(url: &str) -> Result<PageContent> {
+    let request_client = ReqwestClient {};
+    let page_content = fetch_url_with_client(&request_client, url).await?;
+
+    Ok(page_content)
+}
+
+/// Fetch URL content using the provided HTTP client
+async fn fetch_url_with_client<C: HttpClient>(client: &C, url: &str) -> Result<PageContent> {
+    let html = client.get(url).await?;
+    Ok(parse_html(url, &html))
 }
 
 fn parse_html(url: &str, html: &str) -> PageContent {
@@ -41,7 +63,7 @@ fn parse_html(url: &str, html: &str) -> PageContent {
 
     PageContent {
         url: url.to_string(),
-        title: title,
+        title,
         text: body,
     }
 }
@@ -97,5 +119,32 @@ mod tests {
         let result = parse_html("https://example.com", html);
 
         assert_eq!(result.title, None);
+    }
+
+    /// Mock HTTP client for testing
+    struct MockHttpClient {
+        response: String,
+    }
+
+    impl HttpClient for MockHttpClient {
+        async fn get(&self, _url: &str) -> Result<String> {
+            Ok(self.response.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_fetch_url_with_mock_client() {
+        // Arrange: Create a mock client that returns fake HTML
+        let mock_client = MockHttpClient {
+            response: r#"<html><head><title>Mock Page</title></head><body><p>Mock content</p></body></html>"#.to_string(),
+        };
+
+        // Act
+        let result = fetch_url_with_client(&mock_client, "https://example.com")
+            .await
+            .unwrap();
+
+        assert_eq!(result.title, Some("Mock Page".to_string()));
+        assert_eq!(result.text, "Mock content");
     }
 }
