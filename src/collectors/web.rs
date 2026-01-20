@@ -19,7 +19,7 @@ trait HttpClient {
     async fn get(&self, url: &str) -> Result<String>;
 }
 
-struct ReqwestClient {}
+struct ReqwestClient;
 
 impl HttpClient for ReqwestClient {
     async fn get(&self, url: &str) -> Result<String> {
