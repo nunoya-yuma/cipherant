@@ -45,3 +45,57 @@ fn parse_html(url: &str, html: &str) -> PageContent {
         text: body,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_html_extracts_title() {
+        // Arrange
+        let html = r#"
+            <html>
+                <head><title>Test Page</title></head>
+                <body><p>Hello World</p></body>
+            </html>
+        "#;
+
+        // Act
+        let result = parse_html("https://example.com", html);
+
+        // Assert
+        assert_eq!(result.title, Some("Test Page".to_string()));
+        assert_eq!(result.url, "https://example.com");
+    }
+
+    #[test]
+    fn test_parse_html_extracts_paragraphs() {
+        // Multiple <p> tags should be joined with "\n\n"
+        let html = r#"
+            <html>
+                <body>
+                    <p>First paragraph</p>
+                    <p>Second paragraph</p>
+                </body>
+            </html>
+        "#;
+
+        let result = parse_html("https://example.com", html);
+
+        assert_eq!(result.text, "First paragraph\n\nSecond paragraph");
+    }
+
+    #[test]
+    fn test_parse_html_handles_missing_title() {
+        // HTML without <title> tag should return None
+        let html = r#"
+            <html>
+                <body><p>Content without title</p></body>
+            </html>
+        "#;
+
+        let result = parse_html("https://example.com", html);
+
+        assert_eq!(result.title, None);
+    }
+}
