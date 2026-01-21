@@ -22,3 +22,6 @@ serde_json = "1.0"
 
 # Error handling
 anyhow = "1.0"
+
+# LLM integration
+rig-core = "0.10"
