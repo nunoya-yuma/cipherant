@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 pub trait LlmClient {
-    async fn complete(&self, prompt: &str) -> Result<String>;
+    fn complete(&self, prompt: &str) -> impl std::future::Future<Output = Result<String>> + Send;
 }
 
 #[cfg(test)]
