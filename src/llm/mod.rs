@@ -1,3 +1,5 @@
 mod client;
+mod rig_client;
 
-// Will export LlmClient after trait is implemented
+pub use client::LlmClient;
+// pub use rig_client::RigClient;
