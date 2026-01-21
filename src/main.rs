@@ -1,14 +1,9 @@
-mod cli;
-mod collectors;
-mod llm;
-
 use clap::Parser;
-use cli::Cli;
 
-use collectors::web;
-
-use crate::llm::LlmClient;
-use crate::llm::RigClient;
+use cipherant::cli::Cli;
+use cipherant::collectors::web;
+use cipherant::llm::LlmClient;
+use cipherant::llm::RigClient;
 
 #[tokio::main]
 async fn main() {
