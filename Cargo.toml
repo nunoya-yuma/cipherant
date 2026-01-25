@@ -25,4 +25,4 @@ anyhow = "1.0"
 thiserror = "1.0"
 
 # LLM integration
-rig-core = "0.10"
+rig-core = "0.28"
