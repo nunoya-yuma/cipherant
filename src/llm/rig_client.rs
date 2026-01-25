@@ -1,7 +1,9 @@
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use rig::{
+    client::{CompletionClient, Nothing},
     completion::{message::AssistantContent, CompletionModel, CompletionRequest},
     providers::ollama,
+    OneOrMany,
 };
 
 use super::LlmClient;
@@ -21,19 +23,28 @@ impl RigClient {
 
 impl LlmClient for RigClient {
     async fn complete(&self, prompt: &str) -> Result<String> {
-        // Send query
-        let client = ollama::Client::new();
+        // Create client using builder pattern (rig-core 0.28+)
+        let client: ollama::Client = ollama::Client::builder()
+            .api_key(Nothing)
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to create Ollama client: {}", e))?;
+
         let comp_model = client.completion_model(&self.model);
+
+        // Build the user message
+        let user_message = rig::message::Message::User {
+            content: OneOrMany::one(rig::message::UserContent::text(prompt)),
+        };
+
+        // In rig 0.28, prompt is the last message in chat_history
         let req = CompletionRequest {
-            prompt: rig::message::Message::User {
-                content: rig::one_or_many::OneOrMany::one(rig::message::UserContent::text(prompt)),
-            },
             preamble: None,
-            chat_history: vec![],
+            chat_history: OneOrMany::one(user_message),
             documents: vec![],
             tools: vec![],
             temperature: Some(0.7),
             max_tokens: None,
+            tool_choice: None,
             additional_params: None,
         };
 
