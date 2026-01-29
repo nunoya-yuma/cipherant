@@ -4,5 +4,5 @@ use clap::Parser;
 #[command(name = "cipherant")]
 #[command(about = "Personal Research Agent", long_about = None)]
 pub struct Cli {
-    pub url: String,
+    pub prompt: String,
 }
