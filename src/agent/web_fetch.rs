@@ -51,6 +51,7 @@ impl rig::tool::Tool for WebFetch {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        println!("Fetching {} ...", args.url);
         let page = fetch_url(&args.url).await?;
         Ok(WebFetchOutput {
             title: page.title,
