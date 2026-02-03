@@ -1,7 +1,11 @@
+use futures::StreamExt;
 use rig::agent::Agent;
-use rig::completion::Prompt;
+use rig::agent::MultiTurnStreamItem;
+use rig::streaming::StreamedAssistantContent;
+use rig::streaming::StreamingPrompt;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
+use std::io::{self, Write};
 
 const PROMPT: &str = "> ";
 const HISTORY_FILE: &str = ".cipherant_history";
@@ -39,14 +43,27 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
         // Add input to history
         _ = rl.add_history_entry(&input);
 
-        let response = match agent.prompt(&input).await {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("{}", e);
-                continue;
+        let mut stream = agent.stream_prompt(&input).await;
+
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok(MultiTurnStreamItem::StreamAssistantItem(StreamedAssistantContent::Text(
+                    text,
+                ))) => {
+                    print!("{}", text.text);
+                    io::stdout().flush().unwrap();
+                }
+                Ok(MultiTurnStreamItem::FinalResponse(_)) => {
+                    // Final response from LLM
+                }
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    break;
+                }
+                _ => {} // Others(tool call etc.)
             }
-        };
-        println!("{}", response);
+        }
+        println!();
     }
 
     // Save history for next session
