@@ -4,12 +4,16 @@ use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 
 const PROMPT: &str = "> ";
+const HISTORY_FILE: &str = ".cipherant_history";
 
 pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionModel>) {
     println!("Cipherant Interactive Mode");
     println!("Type 'exit' or 'quit' to exit, Ctrl+D to quit\n");
 
     let mut rl = DefaultEditor::new().expect("Failed to create editor");
+
+    // Load history from previous sessions
+    _ = rl.load_history(HISTORY_FILE);
 
     loop {
         let input = match rl.readline(PROMPT) {
@@ -21,7 +25,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
             Err(ReadlineError::Eof) => break,
             Err(err) => {
                 eprintln!("{}", err);
-                return;
+                break;
             }
         };
 
@@ -29,7 +33,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
             continue;
         }
         if input == "exit" || input == "quit" {
-            return;
+            break;
         }
 
         // Add input to history
@@ -44,4 +48,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
         };
         println!("{}", response);
     }
+
+    // Save history for next session
+    _ = rl.save_history(HISTORY_FILE);
 }
