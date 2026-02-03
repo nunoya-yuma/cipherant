@@ -26,3 +26,8 @@ thiserror = "1.0"
 
 # LLM integration
 rig-core = "0.28"
+
+# Load .env file
+dotenvy = "0.15"
+
+# Web search (using reqwest to call Tavily API directly)
