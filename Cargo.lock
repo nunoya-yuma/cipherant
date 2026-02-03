@@ -170,6 +170,7 @@ dependencies = [
  "anyhow",
  "clap",
  "dotenvy",
+ "futures",
  "reqwest",
  "rig-core",
  "rustyline",
