@@ -2,7 +2,7 @@ use rig::agent::Agent;
 use rig::client::{CompletionClient, Nothing};
 use rig::providers::ollama;
 
-use super::WebFetch;
+use super::{WebFetch, WebSearch};
 
 pub fn create_research_agent() -> Agent<rig::providers::ollama::CompletionModel> {
     let client: ollama::Client = ollama::Client::builder()
@@ -14,6 +14,7 @@ pub fn create_research_agent() -> Agent<rig::providers::ollama::CompletionModel>
         .agent("qwen3")
         .preamble("You are a research assistant that helps users gather and summarize information from the web")
         .tool(WebFetch)
+        .tool(WebSearch)
         .build()
 }
 
