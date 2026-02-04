@@ -145,9 +145,15 @@ mod tests {
 
         // Verify text content using helper
         assert_eq!(extract_user_text(&messages[0]), Some("user2".to_string()));
-        assert_eq!(extract_assistant_text(&messages[1]), Some("assistant2".to_string()));
+        assert_eq!(
+            extract_assistant_text(&messages[1]),
+            Some("assistant2".to_string())
+        );
         assert_eq!(extract_user_text(&messages[2]), Some("user3".to_string()));
-        assert_eq!(extract_assistant_text(&messages[3]), Some("assistant3".to_string()));
+        assert_eq!(
+            extract_assistant_text(&messages[3]),
+            Some("assistant3".to_string())
+        );
     }
 
     /// Helper to extract text from User message
