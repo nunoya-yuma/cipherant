@@ -2,13 +2,14 @@ use futures::StreamExt;
 use log::{error, warn};
 use rig::agent::Agent;
 use rig::agent::MultiTurnStreamItem;
-use rig::message::{AssistantContent, Message, UserContent};
 use rig::streaming::StreamedAssistantContent;
 use rig::streaming::StreamingChat;
-use rig::OneOrMany;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::io::{self, Write};
+
+use crate::cli::ConversationHistory;
+use crate::cli::DEFAULT_MAX_TURNS;
 
 const PROMPT: &str = "> ";
 const HISTORY_FILE: &str = ".cipherant_history";
@@ -23,7 +24,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
     _ = rl.load_history(HISTORY_FILE);
 
     // Conversation history for multi-turn context
-    let mut conversation_history: Vec<Message> = vec![];
+    let mut conversation_history = ConversationHistory::new(DEFAULT_MAX_TURNS);
 
     loop {
         let input = match rl.readline(PROMPT) {
@@ -49,14 +50,11 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
         // Add input to history
         _ = rl.add_history_entry(&input);
 
-        let user_message = Message::User {
-            content: OneOrMany::one(UserContent::text(&input)),
-        };
-        conversation_history.push(user_message);
+        conversation_history.add_user(&input);
 
         // Stream with conversation history
         let mut stream = agent
-            .stream_chat(&input, conversation_history.clone())
+            .stream_chat(&input, conversation_history.to_vec())
             .await;
 
         let mut response_text = String::new();
@@ -81,12 +79,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
             }
         }
         println!();
-
-        let assistant_message = Message::Assistant {
-            id: None,
-            content: OneOrMany::one(AssistantContent::text(response_text)),
-        };
-        conversation_history.push(assistant_message);
+        conversation_history.add_assistant(&response_text);
     }
 
     // Save history for next session
