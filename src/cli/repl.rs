@@ -2,6 +2,7 @@ use futures::StreamExt;
 use log::{error, warn};
 use rig::agent::Agent;
 use rig::agent::MultiTurnStreamItem;
+use rig::completion::{CompletionModel, GetTokenUsage};
 use rig::streaming::StreamedAssistantContent;
 use rig::streaming::StreamingChat;
 use rustyline::error::ReadlineError;
@@ -14,7 +15,11 @@ use crate::cli::DEFAULT_MAX_TURNS;
 const PROMPT: &str = "> ";
 const HISTORY_FILE: &str = ".cipherant_history";
 
-pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionModel>) {
+pub async fn run_interactive<M>(agent: Agent<M>)
+where
+    M: CompletionModel + 'static,
+    M::StreamingResponse: GetTokenUsage,
+{
     println!("Cipherant Interactive Mode");
     println!("Type 'exit' or 'quit' to exit, Ctrl+D to quit\n");
 
