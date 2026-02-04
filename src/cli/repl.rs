@@ -2,8 +2,10 @@ use futures::StreamExt;
 use log::{error, warn};
 use rig::agent::Agent;
 use rig::agent::MultiTurnStreamItem;
+use rig::message::{AssistantContent, Message, UserContent};
 use rig::streaming::StreamedAssistantContent;
-use rig::streaming::StreamingPrompt;
+use rig::streaming::StreamingChat;
+use rig::OneOrMany;
 use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::io::{self, Write};
@@ -19,6 +21,9 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
 
     // Load history from previous sessions
     _ = rl.load_history(HISTORY_FILE);
+
+    // Conversation history for multi-turn context
+    let mut conversation_history: Vec<Message> = vec![];
 
     loop {
         let input = match rl.readline(PROMPT) {
@@ -44,7 +49,17 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
         // Add input to history
         _ = rl.add_history_entry(&input);
 
-        let mut stream = agent.stream_prompt(&input).await;
+        let user_message = Message::User {
+            content: OneOrMany::one(UserContent::text(&input)),
+        };
+        conversation_history.push(user_message);
+
+        // Stream with conversation history
+        let mut stream = agent
+            .stream_chat(&input, conversation_history.clone())
+            .await;
+
+        let mut response_text = String::new();
 
         while let Some(result) = stream.next().await {
             match result {
@@ -52,6 +67,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
                     text,
                 ))) => {
                     print!("{}", text.text);
+                    response_text.push_str(&text.text);
                     io::stdout().flush().unwrap();
                 }
                 Ok(MultiTurnStreamItem::FinalResponse(_)) => {
@@ -65,6 +81,12 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
             }
         }
         println!();
+
+        let assistant_message = Message::Assistant {
+            id: None,
+            content: OneOrMany::one(AssistantContent::text(response_text)),
+        };
+        conversation_history.push(assistant_message);
     }
 
     // Save history for next session
