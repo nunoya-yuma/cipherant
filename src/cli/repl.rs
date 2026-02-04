@@ -1,4 +1,5 @@
 use futures::StreamExt;
+use log::{error, warn};
 use rig::agent::Agent;
 use rig::agent::MultiTurnStreamItem;
 use rig::streaming::StreamedAssistantContent;
@@ -28,7 +29,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
             }
             Err(ReadlineError::Eof) => break,
             Err(err) => {
-                eprintln!("{}", err);
+                warn!("Readline error: {}", err);
                 break;
             }
         };
@@ -57,7 +58,7 @@ pub async fn run_interactive(agent: Agent<rig::providers::ollama::CompletionMode
                     // Final response from LLM
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    error!("Stream error: {}", e);
                     break;
                 }
                 _ => {} // Others(tool call etc.)

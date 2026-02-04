@@ -1,3 +1,4 @@
+use log::info;
 use rig::completion::ToolDefinition;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -51,7 +52,7 @@ impl rig::tool::Tool for WebFetch {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        println!("Fetching {} ...", args.url);
+        info!("Fetching {} ...", args.url);
         let page = fetch_url(&args.url).await?;
         Ok(WebFetchOutput {
             title: page.title,

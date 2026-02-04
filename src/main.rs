@@ -1,4 +1,5 @@
 use clap::Parser;
+use log::error;
 
 use cipherant::agent::create_research_agent;
 use cipherant::cli::{run_interactive, Cli};
@@ -6,6 +7,8 @@ use rig::completion::Prompt;
 
 #[tokio::main]
 async fn main() {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
     let args = Cli::parse();
     let agent = create_research_agent();
 
@@ -24,7 +27,7 @@ async fn main() {
         let response = match agent.prompt(prompt).await {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("{}", e);
+                error!("{}", e);
                 return;
             }
         };

@@ -1,4 +1,5 @@
 use dotenvy::dotenv;
+use log::{error, info};
 use rig::completion::ToolDefinition;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -60,7 +61,7 @@ impl rig::tool::Tool for WebSearch {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
-        println!("Searching for: {} ...", args.query);
+        info!("Searching for: {} ...", args.query);
 
         dotenv().ok();
         let tavily_api_key = match env::var("TAVILY_API_KEY") {
@@ -81,7 +82,7 @@ impl rig::tool::Tool for WebSearch {
         let response_body = match response {
             Ok(r) => r.text().await.unwrap(),
             Err(e) => {
-                eprintln!("{}", e);
+                error!("{}", e);
                 return Err(WebSearchError::SearchError(e.to_string()));
             }
         };
