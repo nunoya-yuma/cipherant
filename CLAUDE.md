@@ -7,22 +7,27 @@ Rust製のLLMを活用したローカル処理優先の個人向け調査・情�
 
 ## 技術スタック
 
-### コア機能
-- **言語**: Rust (edition 2024)
+### コア
+- **言語**: Rust (edition 2021)
 - **非同期処理**: tokio
 - **HTTP通信**: reqwest
-- **並列処理**: rayon
+- **HTMLパース**: scraper
 - **シリアライゼーション**: serde, serde_json
-- **CLI**: clap
+- **CLI**: clap, rustyline
+- **エラー処理**: anyhow, thiserror
+- **ログ**: log, env_logger
 
-### LLMインテグレーション（予定）
-- llm-chain-rs
-- candle
-- OpenAI API / Gemini API
+### LLMインテグレーション
+- **rig-core**: マルチプロバイダー対応のLLMフレームワーク
+  - Ollama（ローカルモデル）
+  - OpenAI API
+  - Gemini API
+
+### 環境設定
+- **dotenvy**: `.env`ファイルからの環境変数読み込み
 
 ### 情報処理（予定）
 - **PDF処理**: lopdf / pdf
-- **HTMLスクレイピング**: scraper / select
 - **全文検索**: tantivy
 - **ベクトルDB**: qdrant-client
 
@@ -32,25 +37,36 @@ Rust製のLLMを活用したローカル処理優先の個人向け調査・情�
 cipherant/
 ├── Cargo.toml
 ├── src/
-│   ├── main.rs
-│   ├── cli/              # CLIインターフェース
-│   ├── core/             # コアエンジン
-│   ├── collectors/       # 情報ソース（web, pdf, local_files）
-│   ├── llm/              # LLMコネクタ
-│   ├── storage/          # ストレージ（vector_db, metadata, history）
-│   └── utils/            # ユーティリティ
+│   ├── main.rs              # エントリーポイント
+│   ├── lib.rs               # ライブラリクレートルート
+│   ├── agent/               # エージェント構築・ツール定義
+│   │   ├── mod.rs
+│   │   ├── builder.rs       # プロバイダー別エージェント生成
+│   │   ├── web_fetch.rs     # Webフェッチツール
+│   │   └── web_search.rs    # Web検索ツール
+│   ├── cli/                 # CLIインターフェース
+│   │   ├── mod.rs
+│   │   ├── repl.rs          # インタラクティブモード (REPL)
+│   │   └── history.rs       # 会話履歴管理
+│   ├── collectors/          # 情報ソース
+│   │   ├── mod.rs
+│   │   └── web.rs           # Webスクレイピング
+│   └── llm/                 # LLMクライアント
+│       ├── mod.rs
+│       ├── client.rs        # クライアントインターフェース
+│       └── rig_client.rs    # rig-core実装
 └── docs/
-    ├── design.md         # アーキテクチャ設計
-    └── development.md    # 開発ガイド
+    └── design.md            # アーキテクチャ設計
 ```
 
 ## 開発コマンド
 
 ```bash
-# ビルドと実行
-cargo run -- ${url}
-## e.g.)
-cargo run -- https://example.com
+# ビルドと実行（ワンショットモード）
+cargo run -- "質問文"
+
+# インタラクティブモード（REPL）
+cargo run -- -i
 
 # テスト
 cargo test
@@ -65,14 +81,26 @@ cargo clippy
 cargo build --release
 ```
 
+## プロバイダー設定
+
+環境変数または `.env` ファイルで設定:
+
+| 変数 | 説明 | デフォルト |
+|------|------|-----------|
+| `LLM_PROVIDER` | プロバイダー名 (`ollama`, `openai`, `gemini`) | `ollama` |
+| `LLM_MODEL` | モデル名 | プロバイダーごとのデフォルト |
+| `OPENAI_API_KEY` | OpenAI APIキー | - |
+| `GEMINI_API_KEY` | Gemini APIキー | - |
+
 ## ドキュメント
 - アーキテクチャ設計: [docs/design.md](docs/design.md)
-- 開発ガイド: [docs/development.md](docs/development.md)
 
 ## 現在の開発フェーズ
 フェーズ1: 基盤実装
 - [x] プロジェクト初期化
-- [ ] 基本的なCLI構造
-- [ ] モジュール分割
-- [ ] シンプルなウェブスクレイピング
-- [ ] LLMインテグレーション（初期モデル）
+- [x] 基本的なCLI構造
+- [x] モジュール分割
+- [x] シンプルなウェブスクレイピング
+- [x] LLMインテグレーション（マルチプロバイダー: Ollama / OpenAI / Gemini）
+- [x] インタラクティブモード（REPL）
+- [x] 会話履歴管理
