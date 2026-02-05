@@ -14,16 +14,22 @@ pub struct PageContent {
     pub text: String,
 }
 
+/// User-Agent string used for all HTTP requests
+pub(crate) const USER_AGENT: &str = "cipherant/0.1.0";
+
 /// Trait for HTTP client abstraction (enables mocking in tests)
-trait HttpClient {
+pub(crate) trait HttpClient {
     async fn get(&self, url: &str) -> Result<String>;
 }
 
-struct ReqwestClient;
+pub(crate) struct ReqwestClient;
 
 impl HttpClient for ReqwestClient {
     async fn get(&self, url: &str) -> Result<String> {
-        let response = reqwest::get(url).await?;
+        let client = reqwest::Client::builder()
+            .user_agent(USER_AGENT)
+            .build()?;
+        let response = client.get(url).send().await?;
         let text = response.text().await?;
 
         Ok(text)
