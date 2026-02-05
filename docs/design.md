@@ -92,21 +92,21 @@ LLMを活用したローカル処理優先の個人向け調査・情報整理�
 
 ## 技術スタック（Rustクレート）
 
-### コア機能
+### コア（実装済み）
 - **tokio**: 非同期ランタイム
 - **reqwest**: HTTPクライアント（ウェブ情報取得）
-- **rayon**: データ並列処理
+- **scraper**: HTMLパース
 - **serde** + **serde_json**: シリアライゼーション
 - **clap**: コマンドラインインターフェース
+- **rustyline**: REPL入力
+- **anyhow** + **thiserror**: エラー処理
+- **log** + **env_logger**: ログ
 
-### LLMインテグレーション
-- **llm-chain-rs**: ローカルLLM統合フレームワーク
-- **candle**: Rustネイティブの機械学習実行環境
-- **tokenizers**: トークナイザー実装
+### LLMインテグレーション（実装済み）
+- **rig-core**: マルチプロバイダー対応LLMフレームワーク（Ollama / OpenAI / Gemini）
 
-### 情報処理
+### 情報処理（予定）
 - **lopdf** / **pdf**: PDF処理
-- **scraper** / **select**: HTMLスクレイピング
 - **tantivy**: 全文検索エンジン
 - **qdrant-client**: ローカルベクトルデータベース
 
@@ -114,66 +114,29 @@ LLMを活用したローカル処理優先の個人向け調査・情報整理�
 - **crossterm** / **tui**: ターミナルUI（初期段階）
 - **tauri**: デスクトップGUI（後期段階）
 
-## プロジェクト構造
-
-```
-personal_research_agent/
-├── Cargo.toml                  # 依存関係定義
-├── src/
-│   ├── main.rs                 # エントリーポイント
-│   ├── cli/                    # CLIインターフェース
-│   │   ├── mod.rs
-│   │   └── commands.rs
-│   ├── core/                   # コアエンジン
-│   │   ├── mod.rs
-│   │   ├── query_analyzer.rs   # クエリ解析
-│   │   ├── planner.rs          # 調査計画生成
-│   │   ├── orchestrator.rs     # 処理フロー制御
-│   │   └── response_builder.rs # 応答合成
-│   ├── collectors/             # 情報ソース
-│   │   ├── mod.rs
-│   │   ├── web.rs              # ウェブスクレイピング
-│   │   ├── pdf.rs              # PDF処理
-│   │   └── local_files.rs      # ローカルファイル検索
-│   ├── llm/                    # LLMコネクタ
-│   │   ├── mod.rs
-│   │   ├── model.rs            # モデルインターフェース
-│   │   ├── local_model.rs      # ローカルモデル実装
-│   │   ├── prompt.rs           # プロンプトテンプレート
-│   │   └── api_model.rs        # API接続用（オプション）
-│   ├── storage/                # ストレージ
-│   │   ├── mod.rs
-│   │   ├── vector_db.rs        # ベクトルDB操作
-│   │   ├── metadata.rs         # メタデータ管理
-│   │   └── history.rs          # 履歴保存
-│   └── utils/                  # ユーティリティ
-│       ├── mod.rs
-│       ├── text_processing.rs  # テキスト処理
-│       └── config.rs           # 設定管理
-└── tests/                      # テスト
-```
-
 ## 開発フェーズ
 
-### フェーズ1: 基盤実装（2週間）
-- プロジェクト構造セットアップ
-- CLIインターフェース基本実装
-- シンプルなウェブスクレイピング
-- LLMインテグレーション（初期モデル）
+### フェーズ1: 基盤実装 ✅
+- ✅ プロジェクト構造セットアップ
+- ✅ CLIインターフェース基本実装
+- ✅ シンプルなウェブスクレイピング
+- ✅ LLMインテグレーション（マルチプロバイダー: Ollama / OpenAI / Gemini）
+- ✅ インタラクティブモード（REPL）
+- ✅ 会話履歴管理
 
-### フェーズ2: コア機能実装（3週間）
+### フェーズ2: コア機能実装
 - 複数情報源からのデータ取得
 - ベクトルDBでの保存と検索
 - プロンプトテンプレート実装
 - 基本的な会話コンテキスト
 
-### フェーズ3: 高度機能実装（4週間）
+### フェーズ3: 高度機能実装
 - PDFや他の文書形式の処理
 - メタデータと関連性分析
 - 調査計画の最適化
 - 並列処理とパフォーマンス改善
 
-### フェーズ4: UI改善とテスト（3週間）
+### フェーズ4: UI改善とテスト
 - リッチCLIまたは簡易GUIの実装
 - エラーハンドリングとロギング強化
 - ユーザーテスト
@@ -182,7 +145,7 @@ personal_research_agent/
 ## LLMモデル選定
 - OpenAI API
 - Gemini API
-- ローカルモデル（Llama、Mixtral、Phi-3など）
+- Ollama（ローカルモデル: Llama、Mixtral、Phi-3など）
 
 ## 実装方針
 - 完全ローカル実装を優先
