@@ -1,6 +1,7 @@
 use rig::agent::Agent;
 use rig::client::{CompletionClient, Nothing};
-use rig::providers::{gemini, ollama};
+use rig::providers::openai::responses_api::ResponsesCompletionModel;
+use rig::providers::{gemini, ollama, openai};
 
 use super::{WebFetch, WebSearch};
 
@@ -37,10 +38,23 @@ pub fn create_gemini_agent(
         .build()
 }
 
+/// Create an OpenAI-based research agent
+pub fn create_openai_agent(api_key: &str, model: &str) -> Agent<ResponsesCompletionModel> {
+    let client: rig::client::Client<openai::OpenAIResponsesExt> =
+        openai::Client::new(api_key).expect("Failed to create OpenAI client");
+    client
+        .agent(model)
+        .preamble(PREAMBLE)
+        .tool(WebFetch)
+        .tool(WebSearch)
+        .build()
+}
+
 /// Get the default model name for a given provider
 pub fn default_model(provider: &str) -> &'static str {
     match provider {
         "gemini" => gemini::completion::GEMINI_2_5_FLASH,
+        "openai" => openai::completion::GPT_4_1_MINI,
         _ => "qwen3",
     }
 }
@@ -48,8 +62,9 @@ pub fn default_model(provider: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dotenvy::dotenv;
     use rig::completion::Prompt;
-    use rig::providers::gemini;
+    use rig::providers::{gemini, openai};
 
     #[test]
     fn test_default_model_ollama() {
@@ -59,6 +74,11 @@ mod tests {
     #[test]
     fn test_default_model_gemini() {
         assert_eq!(default_model("gemini"), "gemini-2.5-flash");
+    }
+
+    #[test]
+    fn test_default_model_openai() {
+        assert_eq!(default_model("openai"), "gpt-4.1-mini");
     }
 
     #[test]
@@ -82,8 +102,26 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_gemini_agent_with_web_fetch() {
+        dotenv().ok();
+
         let api_key = std::env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY required");
         let agent = create_gemini_agent(&api_key, gemini::completion::GEMINI_2_5_FLASH);
+        let response = agent
+            .prompt("Fetch https://example.com and **summarize** it shortly")
+            .await
+            .unwrap();
+
+        println!("{}", response);
+        assert!(!response.is_empty());
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_openai_agent_with_web_fetch() {
+        dotenv().ok();
+
+        let api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY required");
+        let agent = create_openai_agent(&api_key, openai::completion::GPT_4_1_MINI);
         let response = agent
             .prompt("Fetch https://example.com and **summarize** it shortly")
             .await
