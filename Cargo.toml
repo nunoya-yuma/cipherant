@@ -36,4 +36,7 @@ rig-core = "0.28"
 # Load .env file
 dotenvy = "0.15"
 
+# robots.txt parser
+texting_robots = "0.2"
+
 # Web search (using reqwest to call Tavily API directly)
