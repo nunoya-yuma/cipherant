@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
-use texting_robots::Robot;
+use log::{debug, warn};
+use reqwest::Url;
+use texting_robots::{get_robots_url, Robot};
 
 use super::web::{HttpClient, USER_AGENT};
 
@@ -21,28 +22,73 @@ impl RobotsCache {
     /// Check if the given URL is allowed by the site's robots.txt.
     /// Returns `true` (allow) on fetch/parse errors (graceful fallback).
     pub(crate) async fn is_allowed<C: HttpClient>(&mut self, client: &C, url: &str) -> bool {
-        // TODO(human): Implement this method
-        // 1. Extract the origin from the URL (e.g. "https://example.com")
-        // 2. Check if the origin is already cached
-        // 3. If not cached, fetch robots.txt and parse it
-        // 4. Use the Robot to check if the URL is allowed for USER_AGENT
-        // 5. Return true on any error (graceful fallback)
-        todo!()
+        let extracted_url = match extract_origin(url) {
+            Some(u) => u,
+            None => return true,
+        };
+
+        match self.cache.get(&extracted_url) {
+            Some(Some(r)) => return r.allowed(url),
+            Some(None) => return true,
+            None => {}
+        };
+
+        let robots_url = match get_robots_url(&extracted_url) {
+            Ok(u) => u,
+            Err(e) => {
+                warn!("Failed to generate a path to robots.txt: {}", e);
+                return true;
+            }
+        };
+        let robot_txt = match client.get(&robots_url).await {
+            Ok(r) => r,
+            Err(e) => {
+                debug!("Failed to get robots.txt: {}", e);
+                self.cache.insert(extracted_url, None);
+                return true;
+            }
+        };
+
+        // Build the Robot for our friendly User-Agent
+        let robot = match Robot::new(USER_AGENT, robot_txt.as_bytes()) {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("robots.txt might be invalid: {}", e);
+                self.cache.insert(extracted_url, None);
+                return true;
+            }
+        };
+        let result = robot.allowed(url);
+        self.cache.insert(extracted_url, Some(robot));
+
+        result
     }
 }
 
 /// Extract the origin (scheme + host + port) from a URL.
 /// e.g. "https://example.com/path" -> "https://example.com"
 pub(crate) fn extract_origin(url: &str) -> Option<String> {
-    // TODO(human): Implement this function
     // Parse the URL and return scheme + host (+ port if non-default)
-    todo!()
+    let mut parsed_url = match Url::parse(url) {
+        Ok(u) => u,
+        Err(e) => {
+            warn!("Invalid URL: {}", e);
+            return None;
+        }
+    };
+    parsed_url.set_path("");
+    parsed_url.set_query(None);
+    parsed_url.set_fragment(None);
+
+    let result = parsed_url.to_string().trim_end_matches('/').to_string();
+
+    Some(result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Ok;
+    use anyhow::Result;
 
     struct MockHttpClient {
         responses: HashMap<String, String>,
@@ -97,10 +143,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_allowed_when_robots_txt_permits() {
-        let client = MockHttpClient::new().with_response(
-            "https://example.com/robots.txt",
-            "User-agent: *\nAllow: /",
-        );
+        let client = MockHttpClient::new()
+            .with_response("https://example.com/robots.txt", "User-agent: *\nAllow: /");
         let mut cache = RobotsCache::new();
 
         assert!(cache.is_allowed(&client, "https://example.com/page").await);
