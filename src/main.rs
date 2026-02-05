@@ -5,7 +5,9 @@ use rig::agent::Agent;
 use rig::completion::{CompletionModel, GetTokenUsage, Prompt};
 use std::env;
 
-use cipherant::agent::{create_gemini_agent, create_ollama_agent, default_model};
+use cipherant::agent::{
+    create_gemini_agent, create_ollama_agent, create_openai_agent, default_model,
+};
 use cipherant::cli::{run_interactive, Cli};
 
 #[tokio::main]
@@ -21,6 +23,12 @@ async fn main() {
     let model = env::var("LLM_MODEL").unwrap_or_else(|_| default_model(&provider).to_string());
 
     match provider.as_str() {
+        "openai" => {
+            let api_key =
+                env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY required for OpenAI provider");
+            let agent = create_openai_agent(&api_key, &model);
+            run_with_agent(agent, &args).await;
+        }
         "gemini" => {
             let api_key =
                 env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY required for Gemini provider");
