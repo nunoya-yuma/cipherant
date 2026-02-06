@@ -8,7 +8,7 @@ use std::env;
 use cipherant::agent::{
     create_gemini_agent, create_ollama_agent, create_openai_agent, default_model,
 };
-use cipherant::cli::{run_interactive, Cli};
+use cipherant::cli::{render_markdown, run_interactive, Cli};
 
 #[tokio::main]
 async fn main() {
@@ -66,6 +66,6 @@ where
                 return;
             }
         };
-        println!("{}", response);
+        render_markdown(&response);
     }
 }

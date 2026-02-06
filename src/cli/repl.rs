@@ -9,6 +9,7 @@ use rustyline::error::ReadlineError;
 use rustyline::DefaultEditor;
 use std::io::{self, Write};
 
+use super::render::{render_markdown, try_clear_lines};
 use crate::cli::ConversationHistory;
 use crate::cli::DEFAULT_MAX_TURNS;
 
@@ -83,7 +84,14 @@ where
                 _ => {} // Others(tool call etc.)
             }
         }
-        println!();
+        // Replace raw streamed text with rendered markdown
+        if !response_text.is_empty() {
+            if !try_clear_lines(&response_text) {
+                // Text was too long to clear; add separator before rendered output
+                println!("\n─────────────────────────────────────────");
+            }
+            render_markdown(&response_text);
+        }
         conversation_history.add_assistant(&response_text);
     }
 
