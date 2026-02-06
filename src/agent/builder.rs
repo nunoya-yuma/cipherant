@@ -3,7 +3,7 @@ use rig::client::{CompletionClient, Nothing};
 use rig::providers::openai::responses_api::ResponsesCompletionModel;
 use rig::providers::{gemini, ollama, openai};
 
-use super::{WebFetch, WebSearch};
+use super::{PdfRead, WebFetch, WebSearch};
 
 const PREAMBLE: &str =
     "You are a research assistant that helps users gather and summarize information from the web";
@@ -20,6 +20,7 @@ pub fn create_ollama_agent(model: &str) -> Agent<ollama::CompletionModel> {
         .preamble(PREAMBLE)
         .tool(WebFetch::new())
         .tool(WebSearch)
+        .tool(PdfRead)
         .build()
 }
 
@@ -35,6 +36,7 @@ pub fn create_gemini_agent(
         .preamble(PREAMBLE)
         .tool(WebFetch::new())
         .tool(WebSearch)
+        .tool(PdfRead)
         .build()
 }
 
@@ -47,6 +49,7 @@ pub fn create_openai_agent(api_key: &str, model: &str) -> Agent<ResponsesComplet
         .preamble(PREAMBLE)
         .tool(WebFetch::new())
         .tool(WebSearch)
+        .tool(PdfRead)
         .build()
 }
 
