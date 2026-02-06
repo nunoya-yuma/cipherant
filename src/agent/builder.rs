@@ -18,7 +18,7 @@ pub fn create_ollama_agent(model: &str) -> Agent<ollama::CompletionModel> {
     client
         .agent(model)
         .preamble(PREAMBLE)
-        .tool(WebFetch)
+        .tool(WebFetch::new())
         .tool(WebSearch)
         .build()
 }
@@ -33,7 +33,7 @@ pub fn create_gemini_agent(
     client
         .agent(model)
         .preamble(PREAMBLE)
-        .tool(WebFetch)
+        .tool(WebFetch::new())
         .tool(WebSearch)
         .build()
 }
@@ -45,7 +45,7 @@ pub fn create_openai_agent(api_key: &str, model: &str) -> Agent<ResponsesComplet
     client
         .agent(model)
         .preamble(PREAMBLE)
-        .tool(WebFetch)
+        .tool(WebFetch::new())
         .tool(WebSearch)
         .build()
 }

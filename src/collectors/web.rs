@@ -36,10 +36,9 @@ impl HttpClient for ReqwestClient {
     }
 }
 
-pub async fn fetch_url(url: &str) -> Result<PageContent> {
+pub(crate) async fn fetch_url(url: &str, robots_cache: &RobotsCache) -> Result<PageContent> {
     let request_client = ReqwestClient {};
-    let mut robots_cache = RobotsCache::new();
-    let page_content = fetch_url_with_client(&request_client, &mut robots_cache, url).await?;
+    let page_content = fetch_url_with_client(&request_client, robots_cache, url).await?;
 
     Ok(page_content)
 }
@@ -47,7 +46,7 @@ pub async fn fetch_url(url: &str) -> Result<PageContent> {
 /// Fetch URL content using the provided HTTP client
 async fn fetch_url_with_client<C: HttpClient>(
     client: &C,
-    robots_cache: &mut RobotsCache,
+    robots_cache: &RobotsCache,
     url: &str,
 ) -> Result<PageContent> {
     if !robots_cache.is_allowed(client, url).await {
@@ -170,9 +169,9 @@ mod tests {
         let mock_client = MockHttpClient::new()
             .with_response("https://example.com/robots.txt", "User-agent: *\nAllow: /")
             .with_response("https://example.com", mock_html);
-        let mut robots_cache = RobotsCache::new();
+        let robots_cache = RobotsCache::new();
 
-        let result = fetch_url_with_client(&mock_client, &mut robots_cache, "https://example.com")
+        let result = fetch_url_with_client(&mock_client, &robots_cache, "https://example.com")
             .await
             .unwrap();
 
@@ -186,11 +185,11 @@ mod tests {
             "https://example.com/robots.txt",
             "User-agent: *\nDisallow: /private",
         );
-        let mut robots_cache = RobotsCache::new();
+        let robots_cache = RobotsCache::new();
 
         let result = fetch_url_with_client(
             &mock_client,
-            &mut robots_cache,
+            &robots_cache,
             "https://example.com/private/page",
         )
         .await;
@@ -206,12 +205,11 @@ mod tests {
             "https://example.com/page",
             "<html><body><p>Content</p></body></html>",
         );
-        let mut robots_cache = RobotsCache::new();
+        let robots_cache = RobotsCache::new();
 
-        let result =
-            fetch_url_with_client(&mock_client, &mut robots_cache, "https://example.com/page")
-                .await
-                .unwrap();
+        let result = fetch_url_with_client(&mock_client, &robots_cache, "https://example.com/page")
+            .await
+            .unwrap();
 
         assert_eq!(result.text, "Content");
     }

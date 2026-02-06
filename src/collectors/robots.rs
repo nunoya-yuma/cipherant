@@ -3,35 +3,42 @@ use std::collections::HashMap;
 use log::{debug, warn};
 use reqwest::Url;
 use texting_robots::{get_robots_url, Robot};
+use tokio::sync::Mutex;
 
 use super::web::{HttpClient, USER_AGENT};
 
 /// Cache for robots.txt per domain origin.
 /// Stores parsed `Robot` instances keyed by origin (e.g. "https://example.com").
+/// Uses `tokio::sync::Mutex` for interior mutability so callers only need `&self`.
 pub(crate) struct RobotsCache {
-    cache: HashMap<String, Option<Robot>>,
+    cache: tokio::sync::Mutex<HashMap<String, Option<Robot>>>,
 }
 
 impl RobotsCache {
     pub(crate) fn new() -> Self {
         Self {
-            cache: HashMap::new(),
+            cache: Mutex::new(HashMap::new()),
         }
     }
 
     /// Check if the given URL is allowed by the site's robots.txt.
     /// Returns `true` (allow) on fetch/parse errors (graceful fallback).
-    pub(crate) async fn is_allowed<C: HttpClient>(&mut self, client: &C, url: &str) -> bool {
+    pub(crate) async fn is_allowed<C: HttpClient>(&self, client: &C, url: &str) -> bool {
+        // http://exmaple.com/somethig/... -> http://exmaple.com
         let extracted_url = match extract_origin(url) {
             Some(u) => u,
             None => return true,
         };
 
-        match self.cache.get(&extracted_url) {
-            Some(Some(r)) => return r.allowed(url),
-            Some(None) => return true,
-            None => {}
-        };
+        // Check whether this URL has already been visited
+        {
+            let locked_cache = self.cache.lock().await;
+            match locked_cache.get(&extracted_url) {
+                Some(Some(r)) => return r.allowed(url),
+                Some(None) => return true,
+                None => {}
+            };
+        }
 
         let robots_url = match get_robots_url(&extracted_url) {
             Ok(u) => u,
@@ -40,26 +47,33 @@ impl RobotsCache {
                 return true;
             }
         };
+
+        // Download robots.txt from URL
         let robot_txt = match client.get(&robots_url).await {
             Ok(r) => r,
             Err(e) => {
                 debug!("Failed to get robots.txt: {}", e);
-                self.cache.insert(extracted_url, None);
+                let mut locked_cache = self.cache.lock().await;
+                locked_cache.insert(extracted_url, None);
                 return true;
             }
         };
 
         // Build the Robot for our friendly User-Agent
-        let robot = match Robot::new(USER_AGENT, robot_txt.as_bytes()) {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("robots.txt might be invalid: {}", e);
-                self.cache.insert(extracted_url, None);
-                return true;
-            }
-        };
-        let result = robot.allowed(url);
-        self.cache.insert(extracted_url, Some(robot));
+        let result: bool;
+        {
+            let mut locked_cache = self.cache.lock().await;
+            let robot = match Robot::new(USER_AGENT, robot_txt.as_bytes()) {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("robots.txt might be invalid: {}", e);
+                    locked_cache.insert(extracted_url, None);
+                    return true;
+                }
+            };
+            result = robot.allowed(url);
+            locked_cache.insert(extracted_url, Some(robot));
+        }
 
         result
     }
@@ -145,7 +159,7 @@ mod tests {
     async fn test_allowed_when_robots_txt_permits() {
         let client = MockHttpClient::new()
             .with_response("https://example.com/robots.txt", "User-agent: *\nAllow: /");
-        let mut cache = RobotsCache::new();
+        let cache = RobotsCache::new();
 
         assert!(cache.is_allowed(&client, "https://example.com/page").await);
     }
@@ -156,7 +170,7 @@ mod tests {
             "https://example.com/robots.txt",
             "User-agent: *\nDisallow: /secret",
         );
-        let mut cache = RobotsCache::new();
+        let cache = RobotsCache::new();
 
         assert!(
             !cache
@@ -169,7 +183,7 @@ mod tests {
     async fn test_allowed_when_robots_txt_fetch_fails() {
         // No mock response for robots.txt => fetch fails => graceful fallback to allow
         let client = MockHttpClient::new();
-        let mut cache = RobotsCache::new();
+        let cache = RobotsCache::new();
 
         assert!(cache.is_allowed(&client, "https://example.com/page").await);
     }
@@ -180,7 +194,7 @@ mod tests {
             "https://example.com/robots.txt",
             "User-agent: *\nDisallow: /blocked",
         );
-        let mut cache = RobotsCache::new();
+        let cache = RobotsCache::new();
 
         // First call fetches robots.txt
         assert!(cache.is_allowed(&client, "https://example.com/ok").await);
@@ -191,6 +205,7 @@ mod tests {
                 .await
         );
         // Only one entry in cache
-        assert_eq!(cache.cache.len(), 1);
+        let locked_cache = cache.cache.lock().await;
+        assert_eq!(locked_cache.len(), 1);
     }
 }

@@ -3,6 +3,7 @@ use rig::completion::ToolDefinition;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::collectors::robots::RobotsCache;
 use crate::collectors::web::fetch_url;
 
 /// Arguments for the WebFetch tool
@@ -25,8 +26,23 @@ pub enum WebFetchError {
     FetchError(#[from] anyhow::Error),
 }
 
-/// WebFetch tool for retrieving web page content
-pub struct WebFetch;
+pub struct WebFetch {
+    robots_cache: RobotsCache,
+}
+
+impl Default for WebFetch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl WebFetch {
+    pub fn new() -> Self {
+        Self {
+            robots_cache: RobotsCache::new(),
+        }
+    }
+}
 
 impl rig::tool::Tool for WebFetch {
     const NAME: &'static str = "web_fetch";
@@ -53,7 +69,7 @@ impl rig::tool::Tool for WebFetch {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         info!("Fetching {} ...", args.url);
-        let page = fetch_url(&args.url).await?;
+        let page = fetch_url(&args.url, &self.robots_cache).await?;
         Ok(WebFetchOutput {
             title: page.title,
             content: page.text,
@@ -86,7 +102,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_web_fetch_tool_get_example_url() {
-        let sut = WebFetch;
+        let sut = WebFetch::new();
         let json = r#"{"url": "https://example.com"}"#;
         let args: WebFetchArgs = serde_json::from_str(json).unwrap();
 
@@ -99,7 +115,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_web_fetch_tool_fail_to_get_web_page() {
-        let sut = WebFetch;
+        let sut = WebFetch::new();
         let json = r#"{"url": "https://lobalhost"}"#;
         let args: WebFetchArgs = serde_json::from_str(json).unwrap();
 
