@@ -42,4 +42,8 @@ texting_robots = "0.2"
 # PDF text extraction
 pdf-extract = "0.7"
 
+# Terminal markdown rendering
+termimad = "0.30"
+crossterm = "0.28"
+
 # Web search (using reqwest to call Tavily API directly)
