@@ -5,6 +5,7 @@ pub mod mcp;
 mod pdf_read;
 pub(crate) mod research_tool;
 pub mod router_agent;
+mod text_read;
 mod web_fetch;
 mod web_search;
 
@@ -20,6 +21,7 @@ pub use chat_agent::ChatAgent;
 pub use mcp::McpToolSet;
 pub use pdf_read::PdfRead;
 pub use router_agent::RouterAgent;
+pub use text_read::TextRead;
 pub use web_fetch::WebFetch;
 pub use web_search::{WebSearch, WebSearchArgs};
 
