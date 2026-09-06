@@ -70,4 +70,5 @@ async-trait = "0.1"
 # Web search (using reqwest to call Tavily API directly)
 
 [dev-dependencies]
+tempfile = "3.27.0"
 tower = { version = "0.5", features = ["util"] }

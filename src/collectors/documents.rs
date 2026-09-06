@@ -60,12 +60,19 @@ fn list_documents_with_fs<C: FileSystem>(
         }
         Err(e) => {
             if e.kind() == std::io::ErrorKind::NotFound {
-                warn!("Documents directory {} not found, returning empty list", dir);
+                warn!(
+                    "Documents directory {} not found, returning empty list",
+                    dir
+                );
                 return Ok(Vec::new());
             }
             Err(e)
         }
     }
+}
+
+fn read_text_file(path: &str) -> Result<String, std::io::Error> {
+    fs::read_to_string(path)
 }
 
 #[cfg(test)]
@@ -195,5 +202,20 @@ mod tests {
         let result = list_documents_with_fs(&mock_file, "empty_dir");
 
         assert_eq!(result.unwrap(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_read_text_file_not_found() {
+        let result = read_text_file("/nonexistent/path/to/file.txt");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_text_file_success() {
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(temp_file.path(), "Test content of the file.").unwrap();
+
+        let result = read_text_file(temp_file.path().to_str().unwrap()).unwrap();
+        assert_eq!(result, "Test content of the file.");
     }
 }
