@@ -40,6 +40,13 @@ struct DirContents {
     subdirs: Vec<String>,
 }
 
+/// List all document file paths under `dir`, recursing into subdirectories.
+///
+/// Returns an empty list (with a warning logged) if `dir` does not exist.
+pub(crate) fn list_documents(dir: &str) -> Result<Vec<String>, std::io::Error> {
+    list_documents_with_fs(&StdFileSystem::new(), dir)
+}
+
 fn list_documents_with_fs<C: FileSystem>(
     file_system: &C,
     dir: &str,
@@ -71,13 +78,15 @@ fn list_documents_with_fs<C: FileSystem>(
     }
 }
 
-fn read_text_file(path: &str) -> Result<String, std::io::Error> {
+/// Read a local text or Markdown file and return its content.
+pub(crate) fn read_text_file(path: &str) -> Result<String, std::io::Error> {
     fs::read_to_string(path)
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::fs::File;
 
     use super::*;
 
@@ -202,6 +211,37 @@ mod tests {
         let result = list_documents_with_fs(&mock_file, "empty_dir");
 
         assert_eq!(result.unwrap(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_list_documents_real_filesystem() {
+        let parent_dir = tempfile::tempdir().unwrap();
+        let file1_path = parent_dir.path().join("file1.txt");
+        let file2_path = parent_dir.path().join("file2.txt");
+        File::create(file1_path).unwrap();
+        File::create(file2_path).unwrap();
+
+        let subdir_path = parent_dir.path().join("subdir");
+        fs::create_dir(&subdir_path).unwrap();
+        let file3_path = subdir_path.join("file3.txt");
+        let file4_path = subdir_path.join("file4.txt");
+        File::create(file3_path).unwrap();
+        File::create(file4_path).unwrap();
+
+        let mut result =
+            list_documents_with_fs(&StdFileSystem::new(), parent_dir.path().to_str().unwrap())
+                .unwrap();
+        result.sort();
+
+        let mut expected = vec![
+            format!("{}/file1.txt", parent_dir.path().to_str().unwrap()),
+            format!("{}/file2.txt", parent_dir.path().to_str().unwrap()),
+            format!("{}/subdir/file3.txt", parent_dir.path().to_str().unwrap()),
+            format!("{}/subdir/file4.txt", parent_dir.path().to_str().unwrap()),
+        ];
+        expected.sort();
+
+        assert_eq!(result, expected);
     }
 
     #[test]
