@@ -44,8 +44,8 @@ impl RouterAgent {
     /// 1. Inner AnyAgent (web_search + web_fetch + pdf_read + MCP tools) for deep research
     /// 2. Outer RouterAgent with ResearchTool wrapping the inner agent (+ MCP tools)
     ///
-    /// Also lists the local documents directory (`COPAL_DOCUMENTS_DIR`, default
-    /// `./documents`) once and embeds the result into the outer agent's preamble,
+    /// Also lists the local knowledge directory (`COPAL_KNOWLEDGE_DIR`, default
+    /// `./knowledge`) once and embeds the result into the outer agent's preamble,
     /// so it always knows what's locally available (see `build_router_preamble`).
     ///
     /// Async because MCP server connections are established at startup.
@@ -64,12 +64,12 @@ impl RouterAgent {
         // List locally available documents once at startup; embedded into the
         // router preamble so the LLM always knows what's available (see
         // build_router_preamble). Fails open (empty list) on error.
-        let documents_dir =
-            env::var("COPAL_DOCUMENTS_DIR").unwrap_or_else(|_| "./documents".to_string());
-        let documents = list_documents(&documents_dir).unwrap_or_else(|e| {
+        let knowledge_dir =
+            env::var("COPAL_KNOWLEDGE_DIR").unwrap_or_else(|_| "./knowledge".to_string());
+        let documents = list_documents(&knowledge_dir).unwrap_or_else(|e| {
             warn!(
                 "Failed to list documents in {}: {}. Continuing with an empty list.",
-                documents_dir, e
+                knowledge_dir, e
             );
             Vec::new()
         });
