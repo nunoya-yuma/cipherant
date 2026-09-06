@@ -1,6 +1,3 @@
-// TODO: remove once PR2 wires this module into TextRead / RouterAgent::from_env().
-#![allow(dead_code)]
-
 use log::warn;
 use std::fs;
 

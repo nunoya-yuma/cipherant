@@ -2,6 +2,7 @@
 .copal_history
 .env
 .claude/CLAUDE.local.md
+/documents/
 
 # Frontend build outputs
 frontend/dist/
